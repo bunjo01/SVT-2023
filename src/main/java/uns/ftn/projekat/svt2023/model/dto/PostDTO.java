@@ -1,20 +1,21 @@
 package uns.ftn.projekat.svt2023.model.dto;
 
-import lombok.*;
-import uns.ftn.projekat.svt2023.model.entity.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import uns.ftn.projekat.svt2023.model.entity.Post;
 
-import javax.validation.constraints.*;
-import java.time.*;
-import java.util.*;
+import javax.validation.constraints.NotBlank;
 
 @NoArgsConstructor
 @Getter
 @Setter
 public class PostDTO {
-
     private Integer id;
     @NotBlank
     private String content;
+    @NotBlank
+    private String title;
     private String creationDate;
     private String userUsername;
     private String imagePath;
@@ -24,6 +25,6 @@ public class PostDTO {
         this.content = createdPost.getContent();
         this.creationDate = createdPost.getCreationDate().toString();
         this.userUsername = createdPost.getUser().getUsername();
+        this.title = createdPost.getTitle();
     }
-
 }

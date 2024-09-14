@@ -2,6 +2,10 @@ package uns.ftn.projekat.svt2023.service.implementation;
 
 import org.springframework.beans.factory.annotation.*;
 import org.springframework.stereotype.*;
+import uns.ftn.projekat.svt2023.indexmodel.GroupIndex;
+import uns.ftn.projekat.svt2023.indexmodel.PostIndex;
+import uns.ftn.projekat.svt2023.indexrepository.GroupIndexRepository;
+import uns.ftn.projekat.svt2023.indexrepository.PostIndexRepository;
 import uns.ftn.projekat.svt2023.model.dto.*;
 import uns.ftn.projekat.svt2023.model.entity.*;
 import uns.ftn.projekat.svt2023.model.enums.*;
@@ -23,6 +27,10 @@ public class ReactionServiceImpl implements ReactionService {
     PostService postService;
     @Autowired
     CommentService commentService;
+    @Autowired
+    private PostIndexRepository postIndexRepository;
+    @Autowired
+    private GroupIndexRepository groupIndexRepository;
 
     @Override
     public void likePost(Integer postId) {
@@ -39,6 +47,17 @@ public class ReactionServiceImpl implements ReactionService {
             reaction.setTimeStamp(LocalDateTime.now());
 
             reaction = reactionRepository.save(reaction);
+
+            PostIndex postIndex = postIndexRepository.findByDatabaseId(post.getId()).orElse(null);
+            if(postIndex != null) {
+                GroupIndex groupIndex = groupIndexRepository.findByDatabaseId(postIndex.getGroupId()).orElse(null);
+                if (groupIndex != null) {
+                    groupIndex.setNumberOfLikes(groupIndex.getNumberOfLikes() + 1);
+                    groupIndex.setAverageLikes((double) groupIndex.getNumberOfPosts() / groupIndex.getNumberOfLikes());
+                    groupIndexRepository.save(groupIndex);
+                }
+            }
+
         } else {
             reactionRepository.changePostReactionToLike(reaction.getId());
         }

@@ -19,6 +19,8 @@ public class Post {
     @Column
     private String content;
     @Column
+    private String title;
+    @Column
     private LocalDateTime creationDate;
     @Column
     private Boolean suspended;
@@ -41,5 +43,4 @@ public class Post {
         this.content = content;
         this.creationDate = creationDate;
     }
-
 }

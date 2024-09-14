@@ -1,15 +1,23 @@
 package uns.ftn.projekat.svt2023.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.minio.errors.*;
 import org.springframework.beans.factory.annotation.*;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.*;
 import org.springframework.validation.annotation.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import uns.ftn.projekat.svt2023.indexmodel.GroupIndex;
+import uns.ftn.projekat.svt2023.indexmodel.PostIndex;
 import uns.ftn.projekat.svt2023.model.dto.*;
 import uns.ftn.projekat.svt2023.model.entity.*;
 import uns.ftn.projekat.svt2023.repository.*;
 import uns.ftn.projekat.svt2023.service.*;
 
+import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -29,6 +37,33 @@ public class PostController {
         this.commentService = commentService;
         this.reactionService = reactionService;
     }
+
+    @PostMapping("/add/{groupId}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<?> addPostWithPdf(@PathVariable Integer groupId, @RequestParam("pdf") MultipartFile pdfFile, @RequestParam("post") String postJson) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            PostDTO postDTO = objectMapper.readValue(postJson, PostDTO.class);
+
+//            Post createdPost = postService.create(postDTO, groupId);
+//
+//            if (createdPost == null) {
+//                return new ResponseEntity<>(null, HttpStatus.NOT_ACCEPTABLE);
+//            }
+
+            // Ensure PostIndex and Post have the same ID
+
+            postService.savePostWithPdf(pdfFile, postDTO, groupId);
+
+            return ResponseEntity.ok(null);
+        } catch (IOException | ServerException | InsufficientDataException | ErrorResponseException | NoSuchAlgorithmException | InvalidKeyException | InvalidResponseException | XmlParserException | InternalException e) {
+            return ResponseEntity.status(500).body("Error saving post or PDF file: " + e.getMessage());
+        }
+    }
+
+
+
+
 
     @PostMapping("/create")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")

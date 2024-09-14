@@ -1,17 +1,21 @@
 package uns.ftn.projekat.svt2023.controller;
 
-import org.hibernate.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.minio.errors.*;
 import org.springframework.beans.factory.annotation.*;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.*;
 import org.springframework.validation.annotation.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import uns.ftn.projekat.svt2023.indexmodel.GroupIndex;
 import uns.ftn.projekat.svt2023.model.dto.*;
 import uns.ftn.projekat.svt2023.model.entity.*;
-import uns.ftn.projekat.svt2023.repository.*;
 import uns.ftn.projekat.svt2023.service.*;
 
-import javax.persistence.criteria.*;
+import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 @RestController
@@ -25,6 +29,25 @@ public class GroupController {
     public GroupController(GroupService groupService, PostService postService) {
         this.groupService = groupService;
         this.postService = postService;
+    }
+
+    @PostMapping("/add")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<?> addGroupWithPdf(@RequestParam("pdf") MultipartFile pdfFile, @RequestParam("group") String groupJson) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            GroupIndex groupIndex = objectMapper.readValue(groupJson, GroupIndex.class);
+
+            GroupDTO newGroup = new GroupDTO();
+            newGroup.setName(groupIndex.getName());
+            newGroup.setDescription(groupIndex.getDescription());
+
+            groupService.saveGroupWithPdf(pdfFile,newGroup);
+
+            return ResponseEntity.ok(null);
+        } catch (IOException | ServerException | InsufficientDataException | ErrorResponseException | NoSuchAlgorithmException | InvalidKeyException | InvalidResponseException | XmlParserException | InternalException e) {
+            return ResponseEntity.status(500).body("Error saving group or PDF file: " + e.getMessage());
+        }
     }
 
     @PostMapping("/create")

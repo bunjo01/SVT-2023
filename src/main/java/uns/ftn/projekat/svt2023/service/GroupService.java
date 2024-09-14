@@ -1,15 +1,26 @@
 package uns.ftn.projekat.svt2023.service;
 
+import io.minio.errors.*;
+import org.springframework.web.multipart.MultipartFile;
+import uns.ftn.projekat.svt2023.indexmodel.GroupIndex;
 import uns.ftn.projekat.svt2023.model.dto.*;
 import uns.ftn.projekat.svt2023.model.entity.*;
 
 import javax.swing.text.html.*;
+import java.io.IOException;
+import java.rmi.ServerException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import io.minio.MinioClient;
+
+
 
 public interface GroupService {
     Group create(GroupDTO groupDTO);
     Group save(Group group);
     Optional<Group> delete(Integer id);
+    void saveGroupWithPdf(MultipartFile pdfFile, GroupDTO groupDTO) throws IOException, ServerException, InsufficientDataException, ErrorResponseException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException, InternalException, io.minio.errors.ServerException;
     Group findOne(Integer id);
     Set<Group> getAllActiveGroups();
     Set<User> getAllGroupMembers(Integer id);

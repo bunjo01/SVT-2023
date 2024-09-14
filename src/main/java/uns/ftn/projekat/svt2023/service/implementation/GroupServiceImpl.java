@@ -1,42 +1,59 @@
 package uns.ftn.projekat.svt2023.service.implementation;
 
+import io.minio.errors.*;
 import org.springframework.beans.factory.annotation.*;
 import org.springframework.context.annotation.*;
-import org.springframework.http.*;
 import org.springframework.stereotype.*;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import uns.ftn.projekat.svt2023.indexmodel.GroupIndex;
+import uns.ftn.projekat.svt2023.indexrepository.GroupIndexRepository;
 import uns.ftn.projekat.svt2023.model.dto.*;
 import uns.ftn.projekat.svt2023.model.entity.*;
+import uns.ftn.projekat.svt2023.pdf.PDFExtractor;
 import uns.ftn.projekat.svt2023.repository.*;
+import uns.ftn.projekat.svt2023.searchservice.implementation.MinioService;
 import uns.ftn.projekat.svt2023.service.*;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.time.*;
-import java.time.format.*;
 import java.util.*;
 
 @Service
 public class GroupServiceImpl implements GroupService {
+
     @Autowired
     private GroupRepository groupRepository;
+
     @Autowired
     private BannedRepository bannedRepository;
+
     @Autowired
     @Lazy
     private UserService userService;
+
     @Autowired
     @Lazy
     private GroupRequestService groupRequestService;
+
+    @Autowired
+    private GroupIndexRepository groupIndexRepository;
+
+    @Autowired
+    private MinioService minioService;
 
     @Override
     public Group create(GroupDTO groupDTO) {
         User groupOwner = userService.returnLoggedUser();
 
-        Set<User> admins = new HashSet<User>();
+        Set<User> admins = new HashSet<>();
         admins.add(groupOwner);
 
         Group newGroup = new Group();
         newGroup.setCreationDate(LocalDateTime.now());
-        newGroup.setId(groupDTO.getId());
         newGroup.setName(groupDTO.getName());
         newGroup.setDescription(groupDTO.getDescription());
         newGroup.setSuspended(false);
@@ -46,9 +63,47 @@ public class GroupServiceImpl implements GroupService {
 
         GroupRequest groupRequest = groupRequestService.create(newGroup.getId());
         groupRequestService.approveRequest(groupRequest.getId());
+//
+
 
         return newGroup;
     }
+
+    @Override
+    public void saveGroupWithPdf(MultipartFile pdfFile, GroupDTO groupDTO) throws IOException, ServerException, InsufficientDataException, ErrorResponseException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException, InternalException {
+        Group groupDTO1 = this.create(groupDTO);
+
+        GroupIndex groupIndex = new GroupIndex();
+        groupIndex.setDatabaseId(groupDTO1.getId());
+        groupIndex.setName(groupDTO1.getName());
+        groupIndex.setDescription(groupDTO1.getDescription());
+        groupIndex.setNumberOfPosts(0);
+        groupIndex.setAverageLikes(0.0);
+        groupIndex.setNumberOfLikes(0);
+
+        groupIndexRepository.save(groupIndex);
+
+        File file = convertToFile(pdfFile);
+
+        String serverName = minioService.store(pdfFile);
+
+        String pdfText = PDFExtractor.extractText(file);
+        groupIndex.setPdfText(pdfText);
+        groupIndex.setPdfDescriptionUrl(serverName);
+
+        groupIndexRepository.save(groupIndex);
+    }
+
+    private File convertToFile(MultipartFile file) throws IOException {
+        File convFile = new File(file.getOriginalFilename());
+        try (FileOutputStream fos = new FileOutputStream(convFile)) {
+            fos.write(file.getBytes());
+        }
+        return convFile;
+    }
+
+
+
 
     @Override
     public Group save(Group group) {return groupRepository.save(group);}
@@ -191,5 +246,6 @@ public class GroupServiceImpl implements GroupService {
     public Set<User> getAllBlockedUsers(Integer groupId) {
         return this.bannedRepository.returnBannedUsersFromGroup(groupId);
     }
+
 
 }
